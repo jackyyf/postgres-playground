@@ -45,3 +45,6 @@ Makefile.in
 
 # Debug files
 *.dSYM/
+
+# postgresql installed directory
+psql/
