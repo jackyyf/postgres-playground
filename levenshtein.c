@@ -11,16 +11,16 @@ Datum levenshtein_distance(PG_FUNCTION_ARGS) {
 	text *str2 = (text *)PG_GETARG_TEXT_P(1);
 	unsigned long l1 = text_len(str1), l2 = text_len(str2);
 	unsigned long i, j;
-	for(i = 0; i < l1; ++ i) dist[i][0] = i;
-	for(i = 1; i < l2; ++ i) dist[0][i] = i;
-	for(i = 1; i < l1; ++ i) {
-		for(j = 1; j < l2; ++ j) {
-			if (VARDATA(str1)[i] == VARDATA(str2)[j]) {
+	for(i = 0; i <= l1; ++ i) dist[i][0] = i;
+	for(i = 1; i <= l2; ++ i) dist[0][i] = i;
+	for(i = 1; i <= l1; ++ i) {
+		for(j = 1; j <= l2; ++ j) {
+			if (VARDATA(str1)[i - 1] == VARDATA(str2)[j - 1]) {
 				dist[i][j] = dist[i - 1][j - 1];
 			} else {
 				dist[i][j] = min3(dist[i - 1][j], dist[i][j - 1], dist[i - 1][j - 1]) + 1;
 			}
 		}
 	}
-	PG_RETURN_INT32(dist[l1 - 1][l2 - 1]);
+	PG_RETURN_INT32(dist[l1][l2]);
 }
