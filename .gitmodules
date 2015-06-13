@@ -1,3 +1,4 @@
 [submodule "postgres"]
 	path = postgres
-	url = https://github.com/postgres/postgres.git
+	url = git@github.com:jackyyf/postgres.git
+	branch = playground-patch
