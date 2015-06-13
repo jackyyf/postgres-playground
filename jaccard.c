@@ -1,8 +1,9 @@
 #include "postgres.h"
 #include "fmgr.h"
 #include "util.h"
+#include <ctype.h>
 
-#define HASH2(a, b) ((unsigned long)(a) << 8 | (unsigned long)(b))
+#define HASH2(a, b) ((unsigned long)(toupper(a)) << 8 | (unsigned long)(toupper(b)))
 
 PG_FUNCTION_INFO_V1(jaccard_index);
 

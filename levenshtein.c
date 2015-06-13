@@ -15,7 +15,7 @@ Datum levenshtein_distance(PG_FUNCTION_ARGS) {
 	for(i = 1; i <= l2; ++ i) dist[0][i] = i;
 	for(i = 1; i <= l1; ++ i) {
 		for(j = 1; j <= l2; ++ j) {
-			if (VARDATA(str1)[i - 1] == VARDATA(str2)[j - 1]) {
+			if (toupper(VARDATA(str1)[i - 1]) == toupper(VARDATA(str2)[j - 1])) {
 				dist[i][j] = dist[i - 1][j - 1];
 			} else {
 				dist[i][j] = min3(dist[i - 1][j], dist[i][j - 1], dist[i - 1][j - 1]) + 1;
