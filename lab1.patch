@@ -1,0 +1,118 @@
+diff --git a/src/backend/utils/fmgr/funcapi.c b/src/backend/utils/fmgr/funcapi.c
+index aa249fa..7240a2c 100644
+--- a/src/backend/utils/fmgr/funcapi.c
++++ b/src/backend/utils/fmgr/funcapi.c
+@@ -1264,3 +1264,97 @@ TypeGetTupleDesc(Oid typeoid, List *colaliases)
+ 
+ 	return tupdesc;
+ }
++
++/* Utils goes here. */
++
++static inline unsigned long min3(unsigned long a, unsigned long b, unsigned long c) {
++	if (a < b) {
++		return a < c ? a : c;
++	}
++	return b < c ? b : c;
++} 
++ 
++#define text_len(ptr) ( VARSIZE(ptr) - VARHDRSZ )
++#define HASH2(a, b) ((unsigned long)(toupper(a)) << 8 | (unsigned long)(toupper(b)))
++
++#define BITSET(name, x) unsigned int name[((x) >> 5) + !!((x) & 31)] = {0}
++#define SET(name, x) name[(x) >> 5] |= (unsigned int)(1U << ((x) & 31))
++#define CLEAR(name, x) name[(x) >> 5] &= (unsigned int)(~0U ^ (1U << ((x) & 31)))
++#define CHECK(name, x) !!(name[(x) >> 5] & (1U << ((x) & 31)))
++#define RESET(name) memset(name, 0, sizeof(name))
++
++/* Main funcs goes here. */
++
++Datum jaccard_index(PG_FUNCTION_ARGS) {
++	static BITSET(bset1, 65536);
++	static BITSET(bset2, 65536);
++	text *str1 = (text *)PG_GETARG_TEXT_P(0);
++	text *str2 = (text *)PG_GETARG_TEXT_P(1);
++	unsigned long l1 = text_len(str1), l2 = text_len(str2);
++	unsigned long i, hash;
++	unsigned long ci = 0, c2 = 0;
++	unsigned long *h1 = (unsigned long *)palloc(sizeof(unsigned long) * (l1 + 1)), *h1tail = h1, *it;
++	RESET(bset1); RESET(bset2);
++	if (l1 == 0 || l2 == 0) {
++		PG_RETURN_FLOAT8((float8).0);
++	}
++	SET(bset1, HASH2('\0', VARDATA(str1)[0]));
++	*h1 = HASH2('\0', VARDATA(str1)[0]); ++ h1tail;
++	SET(bset2, HASH2('\0', VARDATA(str2)[0]));
++	c2 = 1;
++	for(i = 1; i < l1; ++ i) {
++		hash = HASH2(VARDATA(str1)[i - 1], VARDATA(str1)[i]);
++		if (!CHECK(bset1, hash)) {
++			SET(bset1, hash);
++			*(h1tail ++) = hash;
++		}
++	}
++	hash = HASH2(VARDATA(str1)[l1 - 1], '\0');
++	if (!CHECK(bset1, hash)) {
++		SET(bset1, hash);
++		*(h1tail ++) = hash;
++	}
++
++	for(i = 1; i < l2; ++ i) {
++		hash = HASH2(VARDATA(str2)[i - 1], VARDATA(str2)[i]);
++		if (!CHECK(bset2, hash)) {
++			SET(bset2, hash);
++			++ c2;
++		}
++	}
++	hash = HASH2(VARDATA(str2)[l2 - 1], '\0');
++	if (!CHECK(bset2, hash)) {
++		SET(bset2, hash);
++		++ c2;
++	}
++	unsigned long tot = (unsigned long)(h1tail - h1) + c2;
++	for (it = h1; it != h1tail; ++ it) {
++		if (CHECK(bset2, *it)) {
++			++ ci;
++		}
++	}
++	float8 ret;
++	ret = (float8)ci / (float8) (tot - ci);
++	PG_RETURN_FLOAT8(ret);
++}
++
++Datum levenshtein_distance(PG_FUNCTION_ARGS) {
++	/* According to slides: both arguments contain no more than 100 ASCII characters. */
++	static unsigned long dist[128][128];
++	text *str1 = (text *)PG_GETARG_TEXT_P(0);
++	text *str2 = (text *)PG_GETARG_TEXT_P(1);
++	unsigned long l1 = text_len(str1), l2 = text_len(str2);
++	unsigned long i, j;
++	for(i = 0; i <= l1; ++ i) dist[i][0] = i;
++	for(i = 1; i <= l2; ++ i) dist[0][i] = i;
++	for(i = 1; i <= l1; ++ i) {
++		for(j = 1; j <= l2; ++ j) {
++			if (toupper(VARDATA(str1)[i - 1]) == toupper(VARDATA(str2)[j - 1])) {
++				dist[i][j] = dist[i - 1][j - 1];
++			} else {
++				dist[i][j] = min3(dist[i - 1][j], dist[i][j - 1], dist[i - 1][j - 1]) + 1;
++			}
++		}
++	}
++	PG_RETURN_INT32(dist[l1][l2]);
++}
+diff --git a/src/include/catalog/pg_proc.h b/src/include/catalog/pg_proc.h
+index 3c183ce..2c60780 100644
+--- a/src/include/catalog/pg_proc.h
++++ b/src/include/catalog/pg_proc.h
+@@ -4324,6 +4324,11 @@ DATA(insert OID = 3113 (  last_value	PGNSP PGUID 12 1 0 0 f t f t f i 1 0 2283 "
+ DESCR("fetch the last row value");
+ DATA(insert OID = 3114 (  nth_value		PGNSP PGUID 12 1 0 0 f t f t f i 2 0 2283 "2283 23" _null_ _null_ _null_ _null_ window_nth_value _null_ _null_ _null_ ));
+ DESCR("fetch the Nth row value");
++DATA(insert OID = 4375 ( levenshtein_distance PGNSP PGUID 12 1 0 0 f f f t f i 2 0 23 "25 25" _null_ _null_ _null_ _null_ levenshtein_distance _null_ _null_ _null_ ));
++DESCR("calculate levenshtein distance");
++DATA(insert OID = 4376 ( jaccard_index PGNSP PGUID 12 1 0 0 f f f t f i 2 0 701 "25 25" _null_ _null_ _null_ _null_ jaccard_index _null_ _null_ _null_ ));
++DESCR("calculate jaccard index");
++
+ 
+ 
+ /*

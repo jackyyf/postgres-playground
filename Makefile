@@ -22,3 +22,6 @@ install:
 	install -m 0755 libplayground.so.0.0.1 psql/lib/postgresql/libplayground.so.0.0.1
 	ln -sfr psql/lib/postgresql/libplayground.so.0.0.1 psql/lib/postgresql/libplayground.so.0
 	ln -sfr psql/lib/postgresql/libplayground.so.0.0.1 psql/lib/postgresql/libplayground.so
+
+benchmark:
+	./benchmark.sh
