@@ -1,0 +1,37 @@
+Timing is on.
+ count 
+-------
+  3252
+(1 row)
+
+Time: 4912.276 ms
+ count 
+-------
+  2130
+(1 row)
+
+Time: 10001.928 ms
+ count 
+-------
+  2592
+(1 row)
+
+Time: 19534.551 ms
+ count 
+-------
+  1647
+(1 row)
+
+Time: 3220.391 ms
+ count 
+-------
+  2398
+(1 row)
+
+Time: 3574.972 ms
+ count 
+-------
+  2105
+(1 row)
+
+Time: 3788.043 ms
